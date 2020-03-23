@@ -1,0 +1,79 @@
+MPI es un estándar que define una API para programación paralela mediante paso de mensajes, que permite crear programas portables y eficientes.
+
+La creación e inicialización de procesos no está definida en el estándar, depende de la implementación.
+Aquí, -machinefile es una opción que indica que define la asignación de procesos a ordenadores del sistema distribuidos:
+	mpirun -np 4 -machinefile maquinas prog1
+
+MPI_Status es un tipo estructura con los metadatos de los mensajes:
+	1) 	status.MPI_SOURCE: proceso fuente.
+	2) 	status.MPI_TAG: 		 etiqueta del mensaje.
+
+Constantes para representar tipos de datos básicos de C/C++ (para los mensajes en MPI): 
+MPI_CHAR, MPI_INT, MPI_LONG, MPI_UNSIGNED_CHAR, MPI_UNSIGNED, MPI_UNSIGNED_LONG,
+MPI_FLOAT, MPI_DOUBLE, MPI_LONG_DOUBLE, etc.
+
+OpenMPI ofrece varios scripts necesarios para trabajar con programas aumentados con llamadas a funciones de MPI. Los más
+importantes son estos dos:
+	-> mpicxx: para compilar y/o enlazar programas C++ que hagan uso de MPI.
+	-> mpirun: para ejecutar programas MPI.
+
+El programa mpicxx puede utilizarse con las mismas opciones que el compilador de C/C++ usual, p.e.:
+$ mpicxx -std=c++11 -c ejemplo.cpp
+$ mpicxx -std=c++11 -o ejemplo ejemplo.o
+
+Aunque la forma más usual de ejecutar un programa MPI es :
+$ mpirun -np 4 ./ejemplo
+
+El argumento -np sirve para indicar cuántos procesos ejecutarán el programa ejemplo. En este caso, se lanzarán cuatro procesos ejemplo. Como no se indica la opción -machinefile, OpenMPI lanzará dichos 4 procesos en el mismo ordenador donde se ejecuta mpirun.
+
+Funciones básicas de MPI:
+	-> MPI_Init: inicializa el entorno de ejecución de MPI.
+MPI_Init( &argc, &argv );
+
+	-> MPI_Finalize: finaliza el entorno de ejecución de MPI.
+MPI_Finalize( );
+
+	-> MPI_Comm_size: determina el número de procesos de un comunicador.
+MPI_Comm_size( MPI_COMM_WORLD, &num_procesos_actual );
+
+	-> MPI_Comm_rank: determina el identificador del proceso en un comunicador.
+MPI_Comm_rank( MPI_COMM_WORLD, &id_propio );
+
+	-> MPI_Send: operación básica para envío de un mensaje.
+int MPI_Send( void *buf_emi, int num, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm )
+//envia el mensaje buf_emi, de tamaño num y tipo de dato Datatype al destino dest(identificador) con la etiqueta tag en el comunicador comm 
+
+	-> MPI_Recv: operación básica para recepción de un mensaje.
+int MPI_Recv( void *buf_rec, int num, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Status *status )
+//guarda el mensaje en la variable buf, de tamaño num y tipo de dato datatype, enviado por el proceso source (identificador) con la etiqueta tag en el comunicador comm y el estado status
+
+Se pueden tomar los siguientes valores: source es MPI_ANY_SOURCE y  tag es MPI_ANY_TAG.
+
+	-> MPI_Get_count: Escribe en el entero apuntado por num el número de items recibidos en una llamada MPI_Recv previa.
+int MPI_Get_count ( MPI_Status *status, MPI_Datatype dtype, int *num );
+
+	-> MPI_Ssend: envio de datos de manera síncrona y segura.
+int MPI_Ssend( void* buf_emi, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm );
+//Igual que MPI_Send con la diferencia que este espera a que le llegue el mensaje al receptor antes de proseguir su ejecución.
+
+	-> MPI_Iprobe(): consultar si hay o no algún mensaje pendiente en este momento.
+int MPI_Iprobe( int source, int tag, MPI_Comm comm, int *flag, MPI_Status *status );
+
+	-> MPI_Probe(): esperar bloqueado hasta que haya al menos un mensaje.
+int MPI_Probe( int source, int tag, MPI_Comm comm, MPI_Status *status );
+
+	-> MPI_Isend: inicia envío pero retorna antes de leer el buffer.
+int MPI_Isend( void* buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm, MPI_Request *request );
+
+	-> MPI_Irecv: inicia recepción pero retorna antes de recibir.
+int MPI_Irecv( void* buf, int count, MPI_Datatype datatype, int source, int tag, MPI_Comm comm, MPI_Request *request );
+
+	-> MPI_Wait: espera bloqueado hasta que acabe el envío o recepción.
+int MPI_Wait( MPI_Request *request, MPI_Status *status )
+
+	-> MPI_Test: comprueba si el envio o recepción ha finalizado o no. No supone espera bloqueante.
+int MPI_Test( MPI_Request *request, int *flag, MPI_Status *status )
+
+Cuando ya no se va a usar una variable MPI_Request, se puede
+liberar la memoria que usa con MPI_Request_free, declarada así:
+	int MPI_Request_free( MPI_Request *request )
